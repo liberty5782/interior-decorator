@@ -11,7 +11,7 @@ wall decor, and compare layout options before buying anything.
 | dir        | what | status |
 |------------|------|--------|
 | `server/`  | FastAPI + SQLModel + SQLite backend (uv, Alembic, pytest) | Phase 0 done |
-| `android/` | Kotlin + Jetpack Compose + SceneView/ARCore app | next |
+| `android/` | Kotlin + Jetpack Compose + SceneView/ARCore app | AR capture spike |
 | `viewer/`  | Three.js walkthrough viewer | Phase 3 |
 | `docs/`    | plan and API contract | |
 
@@ -57,3 +57,36 @@ Edit `server/app/models.py`, then:
 uv run alembic revision --autogenerate -m "describe change"   # review the generated file
 uv run alembic upgrade head
 ```
+
+## Android app
+
+The first build is a device check and capture test. It connects to the server, picks or creates a
+room, opens an ARCore session showing detected floor and wall planes, and uploads AR snapshots
+(JPEG + pose + intrinsics + planes + depth when the phone supports it).
+
+The app installs on phones without ARCore (`com.google.ar.core` is `optional`). The home screen
+reports ARCore support and disables capture where it's unavailable. Only `capture/ArCoreCapture.kt`
+and the capture screen touch ARCore; everything else works with `CapturedSnapshot`, so a
+non-ARCore capture path can be added later.
+
+### Build
+
+Needs JDK 17+ and the Android SDK with platform 37 (Android Studio installs it), or set
+`sdk.dir` in `android/local.properties`.
+
+```sh
+cd android
+./gradlew :app:assembleDebug        # -> app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:installDebug         # with the phone connected over adb
+```
+
+Toolchain: Gradle 9.8.2, AGP 9.5.1, Kotlin 2.4.21, SceneView 4.66.0 (pulls in ARCore 1.57),
+compileSdk 37, minSdk 26.
+
+### Try it
+
+1. Start the server (above) and note arrbox's LAN/VPN address.
+2. In the app, enter e.g. `192.168.1.20:8000`, tap **Connect**, and add a room.
+3. Tap **Capture snapshots** and move the phone slowly until floor/wall planes appear.
+4. Tap **Capture**. The status line reports the image size, plane count and whether depth was
+   included. Check it on the server: `curl http://<arrbox>:8000/api/rooms/<id>/snapshots`.

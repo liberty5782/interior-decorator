@@ -16,8 +16,11 @@ Interactive docs for every endpoint live at `http://<server>:8000/docs` (OpenAPI
 - Every 4×4 transform is **16 floats in column-major order**. This is what ARCore's
   `Pose.toMatrix(float[], 0)` writes and what Three.js `Matrix4.fromArray()` reads, so
   neither side needs to transpose. The translation is at indices 12, 13, 14.
-- `Snapshot.pose` is the **world-from-camera** pose (ARCore `Camera.getPose()`, or
-  `getDisplayOrientedPose()` if the saved image is display-rotated; the app must be consistent).
+- `Snapshot.pose` is the **world-from-camera** pose from ARCore `Camera.getPose()`, OpenGL
+  style: the camera looks down -Z, with +X right and +Y up *in the saved image*. The image is
+  ARCore's CPU image in **sensor orientation** (usually landscape; not rotated for the screen),
+  and `intrinsics` come from `Camera.getImageIntrinsics()`, so all three agree without any
+  rotation. A viewer rotates the image for display if it wants to.
 - `Placement.transform` is **item-to-world**. The item's local origin is the centre of its
   footprint on the floor (for wall decor: the centre of its back face), with local +Y up and
   local +Z facing out from the wall / towards the item's front.
@@ -62,12 +65,15 @@ Room 1─* Layout 1─* Placement *─1 Item
     "polygon": [[x, z], ...],               // boundary in the plane's local frame
     "label": "floor"                        // optional, free-form
   }],
-  "depth_meta": { "format": "uint16_mm", "width": 160, "height": 120 },  // optional, free-form
+  "depth_meta": { "format": "uint16_le_mm", "width": 160, "height": 120 },  // optional, free-form
   "capture_source": "arcore"                // or "manual" (reserved for non-ARCore devices)
 }
 ```
 
 Notes:
+- Depth from the Android app is ARCore's `acquireDepthImage16Bits()`: `format: "uint16_le_mm"`
+  means tightly packed little-endian uint16 millimetres, row-major, `width × height`, covering
+  the same field of view as the camera image at lower resolution. 0 means "no data".
 - The intrinsics must describe the uploaded image. If the app crops or rotates the image,
   adjust the intrinsics (ARCore's `Camera.getImageIntrinsics()` is for the CPU image, and
   `getTextureIntrinsics()` is for the GPU texture).

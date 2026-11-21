@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The backend runs on the home LAN/VPN over plain HTTP, at an address the user types in.
+     Cleartext is allowed for that reason; put the server behind HTTPS to tighten this. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
