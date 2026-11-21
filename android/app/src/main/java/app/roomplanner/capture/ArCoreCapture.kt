@@ -128,7 +128,6 @@ object ArCoreCapture {
                 Plane.Type.HORIZONTAL_UPWARD_FACING -> "horizontal_up"
                 Plane.Type.HORIZONTAL_DOWNWARD_FACING -> "horizontal_down"
                 Plane.Type.VERTICAL -> "vertical"
-                else -> "vertical"
             },
             centerPose = centerPose.toMatrixList(),
             extentX = extentX,

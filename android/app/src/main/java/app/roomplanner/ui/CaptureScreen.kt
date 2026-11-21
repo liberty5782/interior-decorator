@@ -181,5 +181,4 @@ private fun TrackingFailureReason.hint(): String? = when (this) {
     TrackingFailureReason.EXCESSIVE_MOTION -> "Moving too fast. Slow down."
     TrackingFailureReason.INSUFFICIENT_FEATURES -> "Not enough detail. Point at textured surfaces or furniture."
     TrackingFailureReason.CAMERA_UNAVAILABLE -> "Camera is in use by another app."
-    else -> "Tracking limited."
 }

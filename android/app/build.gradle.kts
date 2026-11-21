@@ -13,7 +13,7 @@ android {
         applicationId = "app.roomplanner"
         // ARCore itself needs 24; 26 keeps java.time and adaptive icons simple.
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
     }
@@ -34,13 +34,21 @@ android {
         compose = true
     }
 
+    lint {
+        // Versions are pinned on purpose (each release out >= 2 weeks); bump them deliberately.
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 }
 
 kotlin {
-    jvmToolchain(17)
+    // Target Java 17 bytecode with whatever JDK (17+) runs Gradle; no toolchain download.
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 dependencies {
@@ -55,4 +63,6 @@ dependencies {
 
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(libs.junit)
 }
