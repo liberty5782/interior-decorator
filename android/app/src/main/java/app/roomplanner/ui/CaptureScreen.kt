@@ -36,6 +36,7 @@ import com.google.ar.core.Plane
 import com.google.ar.core.TrackingFailureReason
 import com.google.ar.core.TrackingState
 import io.github.sceneview.ar.ARSceneView
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,6 +54,8 @@ fun CaptureScreen(api: RoomPlannerApi, room: Room, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     val captureRequested = remember { AtomicBoolean(false) }
+    // New id per ARCore session: each session has its own world origin.
+    var arSessionId by remember { mutableStateOf(UUID.randomUUID().toString()) }
     // Plain counter, not Compose state: it changes every frame and nothing displays it.
     val frameCount = remember { intArrayOf(0) }
     var tracking by remember { mutableStateOf(false) }
@@ -95,6 +98,7 @@ fun CaptureScreen(api: RoomPlannerApi, room: Room, onBack: () -> Unit) {
             // AUTOMATIC: SceneView downgrades to DISABLED on phones without depth support.
             depthMode = Config.DepthMode.AUTOMATIC,
             onSessionCreated = { session ->
+                arSessionId = UUID.randomUUID().toString()
                 depthSupported = session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)
             },
             onTrackingFailureChanged = { reason -> trackingHint = reason?.hint() },
@@ -118,7 +122,7 @@ fun CaptureScreen(api: RoomPlannerApi, room: Room, onBack: () -> Unit) {
 
                 if (captureRequested.compareAndSet(true, false)) {
                     // Must run here: ARCore frame data is only valid inside this callback.
-                    when (val result = ArCoreCapture.grab(session, frame)) {
+                    when (val result = ArCoreCapture.grab(session, frame, arSessionId)) {
                         is ArCoreCapture.Result.NotReady -> message = result.reason
                         is ArCoreCapture.Result.Ok -> scope.launch {
                             upload(withContext(Dispatchers.Default) { result.capture.encode() })

@@ -55,8 +55,11 @@ object ArCoreCapture {
         data class NotReady(val reason: String) : Result
     }
 
-    /** Call only from `onSessionUpdated`, with the frame it just delivered. */
-    fun grab(session: Session, frame: Frame): Result {
+    /**
+     * Call only from `onSessionUpdated`, with the frame it just delivered. [sessionId] identifies
+     * the ARCore session: snapshots sharing it share one world frame.
+     */
+    fun grab(session: Session, frame: Frame, sessionId: String): Result {
         val camera = frame.camera
         if (camera.trackingState != TrackingState.TRACKING) {
             return Result.NotReady("Not tracking yet. Move the phone slowly around the room.")
@@ -91,6 +94,7 @@ object ArCoreCapture {
             planes = planes,
             depthMeta = depthMeta,
             captureSource = "arcore",
+            sessionId = sessionId,
         )
         return Result.Ok(RawCapture(nv21, width, height, depth, meta))
     }

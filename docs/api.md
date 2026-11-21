@@ -66,7 +66,8 @@ Room 1─* Layout 1─* Placement *─1 Item
     "label": "floor"                        // optional, free-form
   }],
   "depth_meta": { "format": "uint16_le_mm", "width": 160, "height": 120 },  // optional, free-form
-  "capture_source": "arcore"                // or "manual" (reserved for non-ARCore devices)
+  "capture_source": "arcore",               // or "manual" (reserved for non-ARCore devices)
+  "session_id": "6f1c…"                     // optional: one id per ARCore session
 }
 ```
 
@@ -78,6 +79,11 @@ Notes:
   adjust the intrinsics (ARCore's `Camera.getImageIntrinsics()` is for the CPU image, and
   `getTextureIntrinsics()` is for the GPU texture).
 - Extra fields on a plane are kept, so the app can add data without a server change.
+- **Sessions and world frames.** Every ARCore session has its own world origin, so poses and
+  transforms from different sessions can't be mixed. The app sends a fresh `session_id` per AR
+  session. A placement (whose `snapshot_id` says which photo it was made on) lines up on every
+  snapshot with the same `session_id`, and on no others. Persistent room anchors (Phase 2) or a
+  measured room frame (Phase 3) are what will later tie sessions together.
 - `capture_source: "manual"` leaves room for a future non-ARCore capture path (e.g. a
   de-Googled phone), where scale comes from a user-entered reference instead of ARCore.
 

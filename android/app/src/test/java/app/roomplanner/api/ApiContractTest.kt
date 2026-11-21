@@ -57,7 +57,7 @@ class ApiContractTest {
 
     @Test
     fun decodesServerResponsesIgnoringExtraFields() {
-        val created = ApiJson.decodeFromString<SnapshotCreated>(
+        val created = ApiJson.decodeFromString<Snapshot>(
             """{"id":3,"room_id":1,"image_url":"/media/snapshots/a.jpg","depth_url":null,
                "pose":[],"planes":[],"created_at":"2026-11-21T00:00:00Z"}""",
         )

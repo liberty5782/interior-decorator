@@ -11,7 +11,7 @@ wall decor, and compare layout options before buying anything.
 | dir        | what | status |
 |------------|------|--------|
 | `server/`  | FastAPI + SQLModel + SQLite backend (uv, Alembic, pytest) | Phase 0 done |
-| `android/` | Kotlin + Jetpack Compose + SceneView/ARCore app | AR capture spike |
+| `android/` | Kotlin + Jetpack Compose + SceneView/ARCore app | Phase 1: capture + photo planner |
 | `viewer/`  | Three.js walkthrough viewer | Phase 3 |
 | `docs/`    | plan and API contract | |
 
@@ -60,9 +60,20 @@ uv run alembic upgrade head
 
 ## Android app
 
-The first build is a device check and capture test. It connects to the server, picks or creates a
-room, opens an ARCore session showing detected floor and wall planes, and uploads AR snapshots
-(JPEG + pose + intrinsics + planes + depth when the phone supports it).
+The app connects to the server and has three parts:
+
+- **Capture** (needs ARCore): shows detected floor and wall planes and uploads AR snapshots (JPEG +
+  pose + intrinsics + planes + depth when the phone supports it). Failed uploads can be retried.
+- **Item catalog**: furniture and wall decor with dimensions in cm from the product listing, plus
+  an optional image (for decor, the picture that hangs on the wall).
+- **Plan** (Phase 1, works without ARCore): shows a saved snapshot with a virtual camera matching
+  the real one. Add items from the catalog: furniture is a true-to-scale box standing on the
+  detected floor, decor is the product image on a detected wall. Tap to select, drag to move,
+  rotate in 15° steps, remove. Each room has layouts ("Option A", "Option B", …) to compare;
+  duplicate one to try a variation. Changes save automatically.
+
+Placements line up on photos from the same AR session (same world origin). Capture several
+photos of a room in one go to see a layout from different angles.
 
 The app installs on phones without ARCore (`com.google.ar.core` is `optional`). The home screen
 reports ARCore support and disables capture where it's unavailable. Only `capture/ArCoreCapture.kt`
@@ -78,7 +89,11 @@ Needs JDK 17+ and the Android SDK with platform 37 (Android Studio installs it),
 cd android
 ./gradlew :app:assembleDebug        # -> app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:installDebug         # with the phone connected over adb
+./gradlew :app:testDebugUnitTest    # geometry, API contract, form and planner rendering tests
 ```
+
+`PlanCanvasRenderTest` renders the planner with a synthetic room on the JVM (Robolectric) and
+writes PNGs to `android/app/build/screenshots/`.
 
 Toolchain: Gradle 9.8.2, AGP 9.5.1, Kotlin 2.4.21, SceneView 4.66.0 (pulls in ARCore 1.57),
 compileSdk 37, minSdk 26.
@@ -89,4 +104,8 @@ compileSdk 37, minSdk 26.
 2. In the app, enter e.g. `192.168.1.20:8000`, tap **Connect**, and add a room.
 3. Tap **Capture snapshots** and move the phone slowly until floor/wall planes appear.
 4. Tap **Capture**. The status line reports the image size, plane count and whether depth was
-   included. Check it on the server: `curl http://<arrbox>:8000/api/rooms/<id>/snapshots`.
+   included. Take a few photos of the room from different spots.
+5. Back on the home screen, open **Item catalog** and add something you're considering, e.g.
+   a sofa at 210 × 90 × 80 cm.
+6. Open **Plan**, tap **Add item**, pick it and tap the floor. Drag it around, rotate it, and
+   flip through the photos (◀ ▶) to check it from other angles.

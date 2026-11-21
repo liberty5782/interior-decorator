@@ -50,6 +50,9 @@ class Snapshot(SQLModel, table=True):
     )
     depth_meta: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     capture_source: CaptureSource = CaptureSource.arcore
+    # Snapshots from the same AR session share one world frame, so placements made on one
+    # line up on the others. Different sessions have unrelated origins.
+    session_id: str | None = Field(default=None, max_length=64, index=True)
     created_at: datetime = Field(default_factory=utcnow)
 
 

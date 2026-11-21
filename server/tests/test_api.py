@@ -61,19 +61,29 @@ def test_room_model_upload_and_replace(client, room, settings):
 
 
 def test_snapshot_upload_roundtrip(client, room):
-    r = upload_snapshot(client, room["id"], snapshot_meta(depth_meta={"format": "uint16_mm"}))
+    r = upload_snapshot(
+        client,
+        room["id"],
+        snapshot_meta(depth_meta={"format": "uint16_mm"}, session_id="s-1"),
+    )
     assert r.status_code == 201, r.text
     snap = r.json()
     assert snap["pose"] == IDENTITY
     assert snap["intrinsics"]["fx"] == 1000
     assert snap["planes"][0]["label"] == "floor"
     assert snap["capture_source"] == "arcore"
+    assert snap["session_id"] == "s-1"
     assert snap["depth_meta"] == {"format": "uint16_mm"}
     assert client.get(snap["image_url"]).content == JPEG
     assert client.get(snap["depth_url"]).content == PNG
 
     listed = client.get(f"/api/rooms/{room['id']}/snapshots").json()
     assert [s["id"] for s in listed] == [snap["id"]]
+
+
+def test_snapshot_session_id_optional(client, room):
+    assert upload_snapshot(client, room["id"]).json()["session_id"] is None
+    assert upload_snapshot(client, room["id"], snapshot_meta(session_id="")).status_code == 422
 
 
 def test_snapshot_raw_depth_and_no_depth(client, room):

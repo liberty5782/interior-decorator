@@ -40,6 +40,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     prefs: Prefs,
     onCapture: (api: RoomPlannerApi, room: Room) -> Unit,
+    onPlan: (api: RoomPlannerApi, room: Room) -> Unit,
+    onCatalog: (api: RoomPlannerApi) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -183,6 +185,26 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(if (room != null) "Capture snapshots of ${room.name}" else "Capture snapshots")
+        }
+        // Planning works on saved snapshots, so it doesn't need ARCore on this phone.
+        Button(
+            onClick = {
+                if (client != null && room != null) {
+                    prefs.roomId = room.id
+                    onPlan(client, room)
+                }
+            },
+            enabled = client != null && room != null,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (room != null) "Plan ${room.name}" else "Plan a room")
+        }
+        OutlinedButton(
+            onClick = { client?.let(onCatalog) },
+            enabled = client != null,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Item catalog")
         }
     }
 }

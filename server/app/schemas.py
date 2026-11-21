@@ -84,6 +84,8 @@ class SnapshotMeta(BaseModel):
     # e.g. {"format": "uint16_mm", "width": 160, "height": 120}
     depth_meta: dict[str, Any] | None = None
     capture_source: CaptureSource = CaptureSource.arcore
+    # Opaque ID of the AR session (one world frame) the snapshot was captured in.
+    session_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class SnapshotRead(BaseModel):
@@ -96,6 +98,7 @@ class SnapshotRead(BaseModel):
     planes: list[Plane]
     depth_meta: dict[str, Any] | None
     capture_source: CaptureSource
+    session_id: str | None
     created_at: datetime
 
 

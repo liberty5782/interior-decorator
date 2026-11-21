@@ -22,6 +22,7 @@ def to_read(s: Snapshot) -> SnapshotRead:
         planes=s.planes,
         depth_meta=s.depth_meta,
         capture_source=s.capture_source,
+        session_id=s.session_id,
         created_at=s.created_at,
     )
 
@@ -69,6 +70,7 @@ def create_snapshot(
             planes=[p.model_dump(exclude_none=True) for p in parsed.planes],
             depth_meta=parsed.depth_meta,
             capture_source=parsed.capture_source,
+            session_id=parsed.session_id,
         )
         session.add(snap)
         session.commit()
