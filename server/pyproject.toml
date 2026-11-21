@@ -1,0 +1,38 @@
+[project]
+name = "roomplanner-server"
+version = "0.1.0"
+description = "Room planner backend: rooms, AR snapshots, item catalog and layouts"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.1",
+    "fastapi>=0.165.0",
+    "pydantic-settings>=2.16.3",
+    "python-multipart>=0.0.34",
+    "sqlmodel>=0.0.50",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# FastAPI's File()/Query() defaults are idiomatic.
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "conftest"]
+known-third-party = ["alembic"]
