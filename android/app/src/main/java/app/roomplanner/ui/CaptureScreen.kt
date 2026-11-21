@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import app.roomplanner.api.Room
 import app.roomplanner.api.RoomPlannerApi
 import app.roomplanner.capture.ArCoreCapture
+import app.roomplanner.capture.CapturedSnapshot
 import com.google.ar.core.Config
 import com.google.ar.core.Plane
 import com.google.ar.core.TrackingFailureReason
@@ -61,6 +63,30 @@ fun CaptureScreen(api: RoomPlannerApi, room: Room, onBack: () -> Unit) {
     var uploading by remember { mutableIntStateOf(0) }
     var uploaded by remember { mutableIntStateOf(0) }
     var message by remember { mutableStateOf("Move the phone slowly to find the floor and walls.") }
+    // Encoded snapshots whose upload failed. Kept in memory until retried or the screen closes.
+    val failed = remember { mutableStateListOf<CapturedSnapshot>() }
+
+    fun upload(snapshot: CapturedSnapshot) {
+        uploading++
+        message = "Uploading…"
+        scope.launch {
+            try {
+                val created = api.uploadSnapshot(room.id, snapshot)
+                uploaded++
+                val m = snapshot.meta
+                message = "Saved snapshot #${created.id}: " +
+                    "${m.intrinsics.width}×${m.intrinsics.height}, " +
+                    "${m.planes.size} planes, " +
+                    if (snapshot.depth != null) "with depth" else "no depth"
+            } catch (e: Exception) {
+                failed += snapshot
+                message = "Upload failed: ${e.message ?: e.javaClass.simpleName}. " +
+                    "The capture is kept until you leave this screen."
+            } finally {
+                uploading--
+            }
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         ARSceneView(
@@ -94,27 +120,8 @@ fun CaptureScreen(api: RoomPlannerApi, room: Room, onBack: () -> Unit) {
                     // Must run here: ARCore frame data is only valid inside this callback.
                     when (val result = ArCoreCapture.grab(session, frame)) {
                         is ArCoreCapture.Result.NotReady -> message = result.reason
-                        is ArCoreCapture.Result.Ok -> {
-                            uploading++
-                            message = "Uploading…"
-                            scope.launch {
-                                try {
-                                    val snapshot = withContext(Dispatchers.Default) {
-                                        result.capture.encode()
-                                    }
-                                    val created = api.uploadSnapshot(room.id, snapshot)
-                                    uploaded++
-                                    val m = snapshot.meta
-                                    message = "Saved snapshot #${created.id}: " +
-                                        "${m.intrinsics.width}×${m.intrinsics.height}, " +
-                                        "${m.planes.size} planes, " +
-                                        if (snapshot.depth != null) "with depth" else "no depth"
-                                } catch (e: Exception) {
-                                    message = "Upload failed: ${e.message ?: e.javaClass.simpleName}"
-                                } finally {
-                                    uploading--
-                                }
-                            }
+                        is ArCoreCapture.Result.Ok -> scope.launch {
+                            upload(withContext(Dispatchers.Default) { result.capture.encode() })
                         }
                     }
                 }
@@ -160,6 +167,22 @@ fun CaptureScreen(api: RoomPlannerApi, room: Room, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(message, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            if (failed.isNotEmpty()) {
+                Button(
+                    onClick = {
+                        val retry = failed.toList()
+                        failed.clear()
+                        retry.forEach(::upload)
+                    },
+                    enabled = uploading == 0,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        if (failed.size == 1) "Retry failed upload"
+                        else "Retry ${failed.size} failed uploads"
+                    )
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onBack) { Text("Back", color = Color.White) }
                 Button(
